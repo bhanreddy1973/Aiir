@@ -42,6 +42,10 @@ const scrollbarconfig = {
 };
 
 const markdownToHtml = (markdownText) => {
+  // Check if markdownText is null, undefined, or empty
+  if (!markdownText || markdownText.trim() === '') {
+    return { __html: '' };
+  }
   const html = marked(markdownText);
   return { __html: html };
 };
@@ -63,6 +67,7 @@ export const ChatArea = () => {
     setMyChatList,
     myChatList,
     isChatLoading,
+    setIsChatLoading,
   } = context;
   const [typing, settyping] = useState(false);
   const toast = useToast();
@@ -79,30 +84,34 @@ export const ChatArea = () => {
   };
 
   useEffect(() => {
+    const onPopState = () => {
+      socket.emit("leave-chat", activeChatId);
+      setActiveChatId("");
+      setMessageList([]);
+      setReceiver({});
+    };
+
+    window.addEventListener("popstate", onPopState);
     return () => {
-      window.addEventListener("popstate", () => {
-        socket.emit("leave-chat", activeChatId);
-        setActiveChatId("");
-        setMessageList([]);
-        setReceiver({});
-      });
+      window.removeEventListener("popstate", onPopState);
     };
   }, [socket, activeChatId, setActiveChatId, setMessageList, setReceiver]);
 
   useEffect(() => {
     socket.on("user-joined-room", (userId) => {
-      const updatedList = messageList.map((message) => {
-        if (message.senderId === user._id && userId !== user._id) {
-          const index = message.seenBy.findIndex(
-            (seen) => seen.user === userId
-          );
-          if (index === -1) {
-            message.seenBy.push({ user: userId, seenAt: new Date() });
+      setMessageList((prev) =>
+        prev.map((message) => {
+          if (message.senderId === user._id && userId !== user._id) {
+            const index = message.seenBy?.findIndex((seen) => seen.user === userId);
+            if (index === -1) {
+              const seenBy = Array.isArray(message.seenBy) ? [...message.seenBy] : [];
+              seenBy.push({ user: userId, seenAt: new Date() });
+              return { ...message, seenBy };
+            }
           }
-        }
-        return message;
-      });
-      setMessageList(updatedList);
+          return message;
+        })
+      );
     });
 
     socket.on("typing", (data) => {
@@ -137,8 +146,43 @@ export const ChatArea = () => {
       socket.off("stop-typing");
       socket.off("receive-message");
       socket.off("message-deleted");
+      socket.off("user-joined-room");
     };
-  }, [socket, messageList, setMessageList, user._id, setIsOtherUserTyping]);
+  }, [socket, setMessageList, user._id, setIsOtherUserTyping]);
+
+  // Fallback: fetch messages whenever activeChatId changes
+  useEffect(() => {
+    const fetchMessages = async () => {
+      if (!activeChatId || !user?._id) return;
+      try {
+        // avoid flicker if already loading elsewhere
+        setIsChatLoading(true);
+        const response = await fetch(`${hostName}/message/${activeChatId}/${user._id}`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            "auth-token": localStorage.getItem("token"),
+          },
+        });
+        if (!response.ok) throw new Error("Failed to fetch messages");
+        const json = await response.json();
+        setMessageList(json || []);
+      } catch (err) {
+        // non-fatal: show toast and keep UI usable
+        toast({
+          title: "Could not load messages",
+          status: "error",
+          duration: 3000,
+          isClosable: true,
+        });
+      } finally {
+        setIsChatLoading(false);
+      }
+    };
+
+    fetchMessages();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeChatId]);
 
   const handleTyping = () => {
     const messageInput = document.getElementById("new-message");
@@ -309,22 +353,20 @@ export const ChatArea = () => {
               mt={1}
               mx={1}
             >
-              {messageList?.map((message) =>
-                !message.deletedby?.includes(user._id) ? (
-                  <SingleMessage
-                    key={message._id}
-                    message={message}
-                    user={user}
-                    receiver={receiver}
-                    markdownToHtml={markdownToHtml}
-                    scrollbarconfig={scrollbarconfig}
-                    socket={socket}
-                    activeChatId={activeChatId}
-                    removeMessageFromList={removeMessageFromList}
-                    toast={toast}
-                  />
-                ) : null
-              )}
+              {messageList?.map((message) => (
+                <SingleMessage
+                  key={message._id}
+                  message={message}
+                  user={user}
+                  receiver={receiver}
+                  markdownToHtml={markdownToHtml}
+                  scrollbarconfig={scrollbarconfig}
+                  socket={socket}
+                  activeChatId={activeChatId}
+                  removeMessageFromList={removeMessageFromList}
+                  toast={toast}
+                />
+              ))}
             </Box>
 
             <Box
@@ -427,10 +469,10 @@ export const ChatArea = () => {
             mt="30vh"
             textAlign="center"
           >
-            <Text fontSize="6vw" fontWeight="bold" fontFamily="Work sans">
-              Conversa
+            <Text fontSize="6vw" fontWeight="bold" fontFamily="Work sans" color="purple.500">
+              Aiiir
             </Text>
-            <Text fontSize="2vw">Online chatting app</Text>
+            <Text fontSize="2vw">Professional AI-Powered Chat Platform</Text>
             <Text fontSize="md">Select a chat to start messaging</Text>
           </Box>
         )

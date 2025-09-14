@@ -17,6 +17,8 @@ app.use("/auth", require("./Routes/auth_routes.js"));
 app.use("/user", require("./Routes/userRoutes.js"));
 app.use("/message", require("./Routes/message_routes.js"));
 app.use("/conversation", require("./Routes/conversation_routes.js"));
+app.use("/friends", require("./Routes/friend_routes.js"));
+app.use("/groups", require("./Routes/group_routes.js"));
 
 // Server setup
 const server = http.createServer(app);
@@ -26,6 +28,6 @@ initSocket(server); // Initialize socket.io logic
 
 // Start server and connect to database
 server.listen(PORT, () => {
-  console.log(`🚀 Server started at http://localhost:${PORT}`);
+  console.log(`🚀 Aiiir Server started at http://localhost:${PORT}`);
   connectDB();
 });

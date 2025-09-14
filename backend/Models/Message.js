@@ -15,14 +15,21 @@ const MessageSchema = new mongoose.Schema(
     text: {
       type: String,
       required: function () {
-        return !this.imageUrl;
+        return !this.imageUrl && !this.fileAttachment;
       },
     },
     imageUrl: {
       type: String,
       required: function () {
-        return !this.text;
+        return !this.text && !this.fileAttachment;
       },
+    },
+    fileAttachment: {
+      url: { type: String },
+      fileName: { type: String },
+      fileSize: { type: Number },
+      mimeType: { type: String },
+      publicId: { type: String }
     },
     reaction: {
       type: String,

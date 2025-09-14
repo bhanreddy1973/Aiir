@@ -53,6 +53,28 @@ const register = async (req, res) => {
     }
     var imageUrl = `https://ui-avatars.com/api/?name=${name}&background=random&bold=true`;
 
+    // Generate unique friend code
+    const generateFriendCode = () => {
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+      let result = '';
+      for (let i = 0; i < 8; i++) {
+        result += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      return result;
+    };
+
+    let friendCode;
+    let codeExists = true;
+    
+    // Ensure unique friend code
+    while (codeExists) {
+      friendCode = generateFriendCode();
+      const existingUser = await User.findOne({ friendCode });
+      if (!existingUser) {
+        codeExists = false;
+      }
+    }
+
     const salt = await bcrypt.genSalt(10);
     const secPass = await bcrypt.hash(password, salt);
 
@@ -62,18 +84,34 @@ const register = async (req, res) => {
       password: secPass,
       profilePic: imageUrl,
       about: "Hello World!!",
+      friendCode: friendCode,
     });
 
     await newUser.save();
 
-    const us = await User.findOne({ email: email });
-    us._id = new ObjectId();
-    us.name = "AI Chatbot";
-    us.email = email + "bot";
-    us.about = "I am an AI Chatbot to help you";
-    us.profilePic =
-      "https://play-lh.googleusercontent.com/Oe0NgYQ63TGGEr7ViA2fGA-yAB7w2zhMofDBR3opTGVvsCFibD8pecWUjHBF_VnVKNdJ";
-    await User.insertMany(us);
+    // Create AI bot user with unique friend code
+    let botFriendCode;
+    let botCodeExists = true;
+    
+    while (botCodeExists) {
+      botFriendCode = generateFriendCode();
+      const existingBotUser = await User.findOne({ friendCode: botFriendCode });
+      if (!existingBotUser) {
+        botCodeExists = false;
+      }
+    }
+
+    const botUser = new User({
+      _id: new ObjectId(),
+      name: "AI Chatbot",
+      email: email + "bot",
+      password: secPass, // Same password hash
+      about: "I am an AI Chatbot to help you",
+      profilePic: "https://play-lh.googleusercontent.com/Oe0NgYQ63TGGEr7ViA2fGA-yAB7w2zhMofDBR3opTGVvsCFibD8pecWUjHBF_VnVKNdJ",
+      friendCode: botFriendCode,
+    });
+
+    await botUser.save();
 
     const bot = await User.findOne({ email: email + "bot" });
 
@@ -173,7 +211,39 @@ const authUser = async (req, res) => {
       return res.status(401).send("Please authenticate using a valid token");
     }
 
-    const user = await User.findById(data.user.id).select("-password");
+    let user = await User.findById(data.user.id).select("-password");
+    
+    // Check if user doesn't have a friendCode and generate one
+    if (!user.friendCode) {
+      const generateFriendCode = () => {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        let result = '';
+        for (let i = 0; i < 8; i++) {
+          result += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return result;
+      };
+
+      let friendCode;
+      let codeExists = true;
+      
+      // Ensure unique friend code
+      while (codeExists) {
+        friendCode = generateFriendCode();
+        const existingUser = await User.findOne({ friendCode });
+        if (!existingUser) {
+          codeExists = false;
+        }
+      }
+
+      // Update user with new friend code
+      user = await User.findByIdAndUpdate(
+        data.user.id, 
+        { friendCode: friendCode },
+        { new: true }
+      ).select("-password");
+    }
+    
     res.json(user);
   } catch (error) {
     console.error(error.message);

@@ -1,7 +1,7 @@
 const Message = require("../Models/Message.js");
 const Conversation = require("../Models/Conversation.js");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
-const imageupload = require("../config/imageupload.js");
+const fileupload = require("../config/imageupload.js");
 const dotenv = require("dotenv");
 dotenv.config({ path: "./.env" });
 const {
@@ -17,10 +17,16 @@ const modelId = "gemini-1.5-flash";
 const model = configuration.getGenerativeModel({ model: modelId });
 
 const sendMessage = async (req, res) => {
-  var imageurl = "";
+  var fileData = null;
 
   if (req.file) {
-    imageurl = await imageupload(req.file, false);
+    try {
+      fileData = await fileupload(req.file, false);
+    } catch (error) {
+      return res.status(400).json({
+        error: "File upload failed: " + error.message,
+      });
+    }
   }
 
   try {
@@ -48,9 +54,16 @@ const sendMessage = async (req, res) => {
     if (!isbot) {
       const newMessage = new Message({
         conversationId,
-        sender,
+        senderId: sender,
         text,
-        imageurl,
+        imageUrl: fileData && fileData.mimeType && fileData.mimeType.startsWith('image/') ? fileData.url : undefined,
+        fileAttachment: fileData && !fileData.mimeType.startsWith('image/') ? {
+          url: fileData.url,
+          fileName: fileData.originalName,
+          fileSize: fileData.bytes,
+          mimeType: fileData.mimeType,
+          publicId: fileData.publicId
+        } : undefined,
         seenBy: [sender],
       });
 

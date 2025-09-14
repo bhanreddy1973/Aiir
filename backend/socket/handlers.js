@@ -1,5 +1,7 @@
 const Conversation = require("../Models/Conversation.js");
 const User = require("../Models/User.js");
+const Group = require("../Models/Group.js");
+const GroupMessage = require("../Models/GroupMessage.js");
 const {
   getAiResponse,
   sendMessageHandler,
@@ -32,6 +34,36 @@ module.exports = (io, socket) => {
     });
   });
 
+  // Join group room
+  socket.on("join-group", async (data) => {
+    const { groupId, userId } = data;
+    
+    try {
+      console.log("User joined group room", groupId);
+      const group = await Group.findById(groupId);
+      
+      if (group) {
+        // Check if user is a member
+        const isMember = group.members.some(member => 
+          member.user.toString() === userId
+        );
+        
+        if (isMember) {
+          socket.join(`group_${groupId}`);
+          io.to(`group_${groupId}`).emit("user-joined-group", { userId, groupId });
+        }
+      }
+    } catch (error) {
+      console.error("Error joining group:", error);
+    }
+  });
+
+  // Leave group room
+  socket.on("leave-group", (data) => {
+    const { groupId } = data;
+    socket.leave(`group_${groupId}`);
+  });
+
   // Join chat room
   socket.on("join-chat", async (data) => {
     const { roomId, userId } = data;
@@ -58,14 +90,26 @@ module.exports = (io, socket) => {
   });
 
   const handleSendMessage = async (data) => {
-    console.log("Received message: ");
+    console.log("Received message: ", data);
 
-    var isSentToBot = false;
+    try {
+      var isSentToBot = false;
 
-    const { conversationId, senderId, text, imageUrl } = data;
-    const conversation = await Conversation.findById(conversationId).populate(
-      "members"
-    );
+      const { conversationId, senderId, text, imageUrl } = data;
+      
+      if (!conversationId || !senderId) {
+        console.error("Missing required fields: conversationId or senderId");
+        return;
+      }
+
+      const conversation = await Conversation.findById(conversationId).populate(
+        "members"
+      );
+
+      if (!conversation) {
+        console.error("Conversation not found:", conversationId);
+        return;
+      }
 
     // processing for AI chatbot
     conversation.members.forEach(async (member) => {
@@ -128,9 +172,10 @@ module.exports = (io, socket) => {
 
     if (receiverPersonalRoom) {
       const receiverSid = Array.from(receiverPersonalRoom)[0];
-      isReceiverInsideChatRoom = io.sockets.adapter.rooms
-        .get(conversationId)
-        .has(receiverSid);
+      const conversationRoom = io.sockets.adapter.rooms.get(conversationId);
+      if (conversationRoom && receiverSid) {
+        isReceiverInsideChatRoom = conversationRoom.has(receiverSid);
+      }
     }
 
     const message = await sendMessageHandler({
@@ -149,10 +194,87 @@ module.exports = (io, socket) => {
       console.log("Emitting new message to: ", receiverId.toString());
       io.to(receiverId.toString()).emit("new-message-notification", message);
     }
+    } catch (error) {
+      console.error("Error in handleSendMessage:", error);
+      socket.emit("message-error", { error: "Failed to send message" });
+    }
   };
 
-  // Send message
-  socket.on("send-message", handleSendMessage);
+  // Send group message
+  const handleSendGroupMessage = async (data) => {
+    console.log("Received group message:", data);
+    
+    try {
+      const { groupId, channelId, senderId, text, fileAttachment, mentions } = data;
+      
+      if (!groupId || !channelId || !senderId) {
+        console.error("Missing required fields for group message");
+        return;
+      }
+
+      const group = await Group.findById(groupId);
+      if (!group) {
+        console.error("Group not found:", groupId);
+        return;
+      }
+
+      // Check if user is a member
+      const isMember = group.members.some(member => 
+        member.user.toString() === senderId
+      );
+      if (!isMember) {
+        console.error("User not a member of group:", senderId, groupId);
+        return;
+      }
+
+      // Check if channel exists
+      const channel = group.channels.id(channelId);
+      if (!channel) {
+        console.error("Channel not found:", channelId);
+        return;
+      }
+
+      const message = new GroupMessage({
+        groupId,
+        channelId,
+        senderId,
+        text,
+        fileAttachment,
+        mentions: mentions || [],
+      });
+
+      await message.save();
+
+      const populatedMessage = await GroupMessage.findById(message._id)
+        .populate('senderId', 'name profilePic email')
+        .populate('mentions.user', 'name profilePic');
+
+      // Emit to all group members
+      io.to(`group_${groupId}`).emit("receive-group-message", {
+        ...populatedMessage.toObject(),
+        channelId
+      });
+
+      // Send notifications to mentioned users
+      if (mentions && mentions.length > 0) {
+        mentions.forEach(mention => {
+          io.to(mention.user.toString()).emit("group-mention-notification", {
+            message: populatedMessage,
+            groupId,
+            channelId,
+            groupName: group.name,
+            channelName: channel.name
+          });
+        });
+      }
+
+    } catch (error) {
+      console.error("Error in handleSendGroupMessage:", error);
+      socket.emit("group-message-error", { error: "Failed to send group message" });
+    }
+  };
+
+  socket.on("send-group-message", handleSendGroupMessage);
 
   const handleDeleteMessage = async (data) => {
     const { messageId, deleteFrom, conversationId } = data;
@@ -163,6 +285,7 @@ module.exports = (io, socket) => {
   };
 
   // Send message
+  socket.on("send-message", handleSendMessage);
   socket.on("delete-message", handleDeleteMessage);
 
   // Typing indicator
@@ -179,24 +302,26 @@ module.exports = (io, socket) => {
   socket.on("disconnect", async () => {
     console.log("A user disconnected", currentUserId, socket.id);
     try {
-      await User.findByIdAndUpdate(currentUserId, {
-        isOnline: false,
-        lastSeen: new Date(),
-      });
+      if (currentUserId) {
+        await User.findByIdAndUpdate(currentUserId, {
+          isOnline: false,
+          lastSeen: new Date(),
+        });
+
+        const conversations = await Conversation.find({
+          members: { $in: [currentUserId] },
+        });
+
+        conversations.forEach((conversation) => {
+          const sock = io.sockets.adapter.rooms.get(conversation.id);
+          if (sock) {
+            console.log("Other user is offline is sent to: ", currentUserId);
+            io.to(conversation.id).emit("receiver-offline", {});
+          }
+        });
+      }
     } catch (error) {
       console.error("Error updating user status on disconnect:", error);
     }
-
-    const conversations = await Conversation.find({
-      members: { $in: [currentUserId] },
-    });
-
-    conversations.forEach((conversation) => {
-      const sock = io.sockets.adapter.rooms.get(conversation.id);
-      if (sock) {
-        console.log("Other user is offline is sent to: ", currentUserId);
-        io.to(conversation.id).emit("receiver-offline", {});
-      }
-    });
   });
 };

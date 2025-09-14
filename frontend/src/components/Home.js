@@ -46,10 +46,10 @@ const Home = () => {
       <Flex direction="column" align="center" justify="center" minH="80vh">
         <Box textAlign="center">
           <Text fontSize={"7xl"} fontWeight={"bold"} fontFamily={"Work sans"}>
-            Conversa
+            Aiiir
           </Text>
           <Text fontSize="xl" fontWeight="bold" mb={4}>
-            Online Chatting App
+            Professional AI-Powered Chat Platform
           </Text>
           <Button mr={3} onClick={handleloginopen}>
             Login
@@ -68,7 +68,7 @@ const Home = () => {
         mt={4}
         textAlign="center"
       >
-        &copy; 2024 Conversa. All rights reserved.
+        &copy; 2024 Aiiir. All rights reserved. Developed by
         <Link to="https://github.com/pankil-soni" target="_blank">
           <Text as="u" color="purple.500" ml={1}>
             Pankil Soni

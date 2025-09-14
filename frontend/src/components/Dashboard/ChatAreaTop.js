@@ -1,5 +1,4 @@
 import {
-  Box,
   Flex,
   Text,
   Button,
@@ -11,7 +10,7 @@ import {
   Stack,
 } from "@chakra-ui/react";
 import { ArrowBackIcon } from "@chakra-ui/icons";
-import React, { useContext, useEffect } from "react";
+import React, { useContext, useEffect, useCallback } from "react";
 import chatContext from "../../context/chatContext";
 import { ProfileModal } from "../miscellaneous/ProfileModal";
 import { useDisclosure } from "@chakra-ui/react";
@@ -32,7 +31,7 @@ const ChatAreaTop = () => {
 
   const { isOpen, onOpen, onClose } = useDisclosure();
 
-  const getReceiverOnlineStatus = async () => {
+  const getReceiverOnlineStatus = useCallback(async () => {
     if (!receiver._id) {
       return;
     }
@@ -54,7 +53,7 @@ const ChatAreaTop = () => {
         isOnline: data.isOnline,
       }));
     } catch (error) {}
-  };
+  }, [hostName, receiver._id, setReceiver]);
 
   const handleBack = () => {
     socket.emit("leave-chat", activeChatId);
@@ -86,7 +85,7 @@ const ChatAreaTop = () => {
 
   useEffect(() => {
     getReceiverOnlineStatus();
-  }, [receiver?._id]);
+  }, [getReceiverOnlineStatus]);
   return (
     <>
       <Flex w={"100%"}>
@@ -141,16 +140,16 @@ const ChatAreaTop = () => {
                       {receiver.name}
                     </Text>
                     {receiver.isOnline ? (
-                      <Text mx={1} fontSize={"small"}>
+                      <Flex alignItems="center" mx={1}>
                         <Circle
                           size="2"
                           bg="green.500"
-                          display="inline-block"
-                          borderRadius="full"
-                          mx={1}
+                          mr={1}
                         />
-                        active now
-                      </Text>
+                        <Text fontSize={"small"}>
+                          active now
+                        </Text>
+                      </Flex>
                     ) : (
                       <Text my={0} mx={1} fontSize={"xx-small"}>
                         {getLastSeenString(receiver.lastSeen)}

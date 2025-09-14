@@ -22,12 +22,19 @@ const FileUploadModal = (props) => {
 
   const handleFileInputChange = (e) => {
     const file = e.target.files[0];
-    if (file && file.type.startsWith("image/")) {
+    if (file) {
+      // Check file size (100MB limit)
+      const maxSize = 100 * 1024 * 1024; // 100MB
+      if (file.size > maxSize) {
+        alert("File size must be less than 100MB.");
+        fileInputRef.current.value = null;
+        setSelectedFile(null);
+        return;
+      }
       setSelectedFile(file);
     } else {
       fileInputRef.current.value = null;
       setSelectedFile(null);
-      alert("Please select a valid image file.");
     }
   };
 
@@ -41,7 +48,7 @@ const FileUploadModal = (props) => {
         <ModalOverlay />
         <ModalContent>
           <ModalHeader display={"flex"} justifyContent={"space-between"}>
-            <Text w={"max-content"}>Send a photo</Text>
+            <Text w={"max-content"}>Send a file</Text>
             <CloseButton onClick={props.onClose} />
           </ModalHeader>
           <ModalBody>
@@ -54,7 +61,7 @@ const FileUploadModal = (props) => {
             <Box display={"flex"} justifyContent={"space-between"}>
               <Flex>
                 <Button mr={3} onClick={handleFileUpload}>
-                  <Text>Choose a photo</Text>
+                  <Text>Choose a file</Text>
                 </Button>
                 {selectedFile && (
                   <Box

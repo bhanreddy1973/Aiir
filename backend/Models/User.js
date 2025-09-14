@@ -28,12 +28,36 @@ const Userschema = new mongoose.Schema(
     profilePic: {
       type: String,
       default:
-        "https://ui-avatars.com/api/?name=Conversa&background=random&bold=true",
+        "https://ui-avatars.com/api/?name=Aiiir&background=random&bold=true",
     },
     otp: {
       type: String,
       default: "",
     },
+    friendCode: {
+      type: String,
+      unique: true,
+      sparse: true, // Allows multiple null values
+    },
+    friends: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    }],
+    friendRequests: [{
+      from: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+      },
+      status: {
+        type: String,
+        enum: ['pending', 'accepted', 'declined'],
+        default: 'pending'
+      },
+      createdAt: {
+        type: Date,
+        default: Date.now
+      }
+    }],
     isOnline: {
       type: Boolean,
       default: false,

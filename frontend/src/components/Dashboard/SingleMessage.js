@@ -12,6 +12,7 @@ import {
 } from "@chakra-ui/react";
 import { CopyIcon, DeleteIcon, CheckCircleIcon } from "@chakra-ui/icons";
 import DeleteMessageModal from "../miscellaneous/DeleteMessageModal";
+import FilePreview from "../miscellaneous/FilePreview";
 
 const SingleMessage = ({
   message,
@@ -157,10 +158,22 @@ const SingleMessage = ({
                   mb={2}
                 />
               )}
+              
+              {/* File attachment preview */}
+              {message.fileAttachment && (
+                <Box mb={2}>
+                  <FilePreview fileAttachment={message.fileAttachment} />
+                </Box>
+              )}
+              
               <Text
                 overflowX="scroll"
                 sx={scrollbarconfig}
-                dangerouslySetInnerHTML={markdownToHtml(message.text)}
+                dangerouslySetInnerHTML={
+                  typeof markdownToHtml === 'function'
+                    ? markdownToHtml(message.text || '')
+                    : { __html: (message.text || '') }
+                }
               ></Text>
               <Flex justify="end" align="center" mt={1}>
                 <Text align="end" fontSize="10px" color="#e6e5e5">

@@ -60,8 +60,8 @@ const Signup = (props) => {
     } else if (email.length > 50) {
       showtoast("Email should be atmost 50 characters long");
       return;
-    } else if (password.length < 8 || password.length > 20) {
-      showtoast("Invalid Password");
+    } else if (password.length < 6 || password.length > 20) {
+      showtoast("Password should be atleast 6 and atmost 20 characters long");
       return;
     } else if (password !== confirmpassword) {
       showtoast("Passwords do not match");
