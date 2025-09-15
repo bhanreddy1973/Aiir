@@ -1304,12 +1304,7 @@ We welcome contributions from developers of all skill levels! Here's how you can
 - 🌍 **Internationalization**: Multi-language support
 - 📊 **Performance**: Optimization and monitoring
 
-### **🏆 Top Contributors**
-<p align="left">
-   <a href="https://github.com/bhanreddy1973/Aiir/graphs/contributors">
-      <img src="https://contrib.rocks/image?repo=bhanreddy1973/Aiir">
-   </a>
-</p>
+
 
 ---
 
