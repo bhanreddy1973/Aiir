@@ -1,0 +1,43 @@
+version: '3.8'
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "5000:5000"
+    environment:
+      - NODE_ENV=production
+      - MONGO_URI=${MONGO_URI}
+      - GENERATIVE_API_KEY=${GENERATIVE_API_KEY}
+      - EMAIL=${EMAIL}
+      - PASSWORD=${PASSWORD}
+      - AWS_BUCKET_NAME=${AWS_BUCKET_NAME}
+      - AWS_ACCESS_KEY=${AWS_ACCESS_KEY}
+      - AWS_SECRET=${AWS_SECRET}
+    depends_on:
+      - mongo
+    networks:
+      - aiiir-network
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - aiiir-network
+
+  mongo:
+    image: mongo:7
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - aiiir-network
+
+volumes:
+  mongo-data:
+
+networks:
+  aiiir-network:
