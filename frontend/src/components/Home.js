@@ -69,9 +69,9 @@ const Home = () => {
         textAlign="center"
       >
         &copy; 2024 Aiiir. All rights reserved. Developed by
-        <Link to="https://github.com/pankil-soni" target="_blank">
+        <Link to="https://github.com/bhanreddy1973" target="_blank">
           <Text as="u" color="purple.500" ml={1}>
-            Pankil Soni
+            BHANU REDDY
           </Text>
         </Link>
       </Text>
