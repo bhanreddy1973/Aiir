@@ -40,7 +40,7 @@ export const ProfileModal = ({ isOpen, onClose, user, setUser }) => {
     if (!_isEqual(user, editedUser)) {
       setEditedUser(user);
     }
-  }, [user]);
+  }, [user, editedUser]);
 
   const handleSave = async () => {
     try {

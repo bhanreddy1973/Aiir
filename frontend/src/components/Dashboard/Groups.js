@@ -72,7 +72,7 @@ const Groups = () => {
   const { isOpen: isSettingsOpen, onOpen: onSettingsOpen, onClose: onSettingsClose } = useDisclosure();
 
   const context = useContext(chatContext);
-  const { hostName, user, setReceiver, setActiveChatId, socket } = context;
+  const { hostName, user, socket } = context;
   const toast = useToast();
 
   // Fetch group messages for selected channel

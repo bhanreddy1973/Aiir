@@ -5,7 +5,6 @@ import {
   Tab, 
   TabPanel, 
   TabPanels,
-  Box 
 } from "@chakra-ui/react";
 import MyChatList from "./MyChatList";
 import NewChats from "./NewChats";

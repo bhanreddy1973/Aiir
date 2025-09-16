@@ -35,7 +35,7 @@ const Dashboard = () => {
     }
 
     return () => {};
-  }, [isAuthenticated]);
+  }, [isAuthenticated, navigator, toast]);
 
   setTimeout(async () => {
     if (!isAuthenticated) {
