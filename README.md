@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 
 <div align="left" style="position: relative;">
   
@@ -1394,3 +1395,7 @@ This project was inspired by modern communication platforms like **Discord**, **
 *© 2025 Aiiir. All rights reserved.*
 
 </div>
+=======
+# mern-chat-app
+A full-stack MERN (MongoDB, Express.js, React.js, Node.js) realtime chatting application with friends and with Personal Chatbot
+>>>>>>> 3b288d2 (Initial commit)

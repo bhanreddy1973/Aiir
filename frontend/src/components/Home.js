@@ -71,7 +71,7 @@ const Home = () => {
         &copy; 2024 Aiiir. All rights reserved. Developed by
         <Link to="https://github.com/bhanreddy1973" target="_blank">
           <Text as="u" color="purple.500" ml={1}>
-            BHANU REDDY
+            Bhanu Reddy Soni
           </Text>
         </Link>
       </Text>
